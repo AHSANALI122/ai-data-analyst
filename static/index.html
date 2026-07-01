@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Data Analyst</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --bg: #0b1120; --bg2: #0f172a;
+    --panel: rgba(30, 41, 59, 0.65); --panel-solid: #1e293b; --panel2: #273549;
+    --text: #e8eef7; --muted: #97a6bd; --faint: #64748b;
+    --accent: #38bdf8; --accent2: #818cf8; --accent-ink: #04202e;
+    --ok: #34d399; --warn: #fbbf24; --err: #f87171; --border: #2a3a53;
+    --radius: 14px; --shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.55);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--text); line-height: 1.55;
+    background:
+      radial-gradient(1100px 620px at 12% -8%, rgba(56, 189, 248, 0.14), transparent 60%),
+      radial-gradient(900px 560px at 100% 0%, rgba(129, 140, 248, 0.13), transparent 55%),
+      var(--bg);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 44px 20px 96px; }
+
+  /* header */
+  .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .logo {
+    width: 40px; height: 40px; border-radius: 12px; flex: none;
+    display: grid; place-items: center; font-size: 20px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    box-shadow: 0 6px 18px -6px rgba(56, 189, 248, 0.6);
+  }
+  h1 {
+    margin: 0; font-size: 30px; font-weight: 800; letter-spacing: -0.02em;
+    background: linear-gradient(90deg, #e8eef7 0%, #9fd8ff 55%, #b7bcff 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .sub { color: var(--muted); margin: 0 0 26px; font-size: 15px; max-width: 62ch; }
+
+  /* ask bar */
+  .askbar {
+    display: flex; gap: 10px; margin-bottom: 14px; padding: 6px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 16px; backdrop-filter: blur(10px); box-shadow: var(--shadow);
+  }
+  .askbar:focus-within { border-color: rgba(56, 189, 248, 0.55); }
+  input[type=text] {
+    width: 100%; background: transparent; color: var(--text);
+    border: 0; outline: none; padding: 10px 12px; font-size: 15.5px; font-family: inherit;
+  }
+  input[type=text]::placeholder { color: var(--faint); }
+  textarea {
+    width: 100%; background: #0b1220; color: var(--text);
+    border: 1px solid var(--border); border-radius: 10px; padding: 12px;
+    font-size: 13.5px; font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+    min-height: 96px; outline: none; resize: vertical;
+  }
+  textarea:focus { border-color: rgba(56, 189, 248, 0.55); }
+
+  /* buttons */
+  button {
+    background: linear-gradient(135deg, var(--accent), #22a7e0); color: var(--accent-ink);
+    border: 0; border-radius: 11px; padding: 11px 18px; font-size: 14px; font-weight: 600;
+    font-family: inherit; cursor: pointer; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: transform .12s ease, box-shadow .12s ease, background .15s ease, opacity .15s ease;
+    box-shadow: 0 6px 16px -8px rgba(56, 189, 248, 0.7);
+  }
+  button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 10px 22px -8px rgba(56, 189, 248, 0.8); }
+  button:active:not(:disabled) { transform: translateY(0); }
+  button.secondary { background: var(--panel2); color: var(--text); box-shadow: none; }
+  button.secondary:hover:not(:disabled) { background: #31435c; }
+  button.danger { background: transparent; color: var(--err); border: 1px solid rgba(248, 113, 113, 0.5); box-shadow: none; }
+  button.danger:hover:not(:disabled) { background: rgba(248, 113, 113, 0.12); }
+  button:disabled { opacity: .55; cursor: default; }
+
+  /* spinner */
+  .spinner {
+    width: 15px; height: 15px; border-radius: 50%;
+    border: 2px solid rgba(4, 32, 46, 0.35); border-top-color: var(--accent-ink);
+    animation: spin .6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 28px; }
+  .chip {
+    background: rgba(30, 41, 59, 0.5); color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 7px 14px; font-size: 13px; font-family: inherit; cursor: pointer;
+    box-shadow: none; font-weight: 500;
+    transition: color .15s, border-color .15s, background .15s, transform .12s;
+  }
+  .chip:hover:not(:disabled) { color: var(--text); border-color: var(--accent); background: rgba(56, 189, 248, 0.08); transform: translateY(-1px); }
+  .chip.vague { border-color: rgba(251, 191, 36, 0.5); color: var(--warn); }
+  .chip.vague:hover:not(:disabled) { background: rgba(251, 191, 36, 0.1); border-color: var(--warn); }
+
+  /* cards */
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px; margin-bottom: 16px; backdrop-filter: blur(10px);
+    box-shadow: var(--shadow);
+    animation: fadeInUp .34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .card h3 {
+    margin: 0 0 12px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--faint); font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card h3::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+  }
+
+  pre {
+    background: #080d18; border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; font-size: 13px;
+    color: #cfe3ff; font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+    line-height: 1.6;
+  }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* table */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead th {
+    position: sticky; top: 0; background: #16203a; color: var(--muted);
+    font-weight: 600; font-size: 12px; letter-spacing: 0.03em; text-transform: uppercase;
+    padding: 11px 14px; border-bottom: 1px solid var(--border); text-align: left;
+  }
+  tbody td { padding: 10px 14px; border-bottom: 1px solid rgba(42, 58, 83, 0.6); }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr { transition: background .12s; }
+  tbody tr:hover { background: rgba(56, 189, 248, 0.06); }
+
+  .insight { margin: 0; white-space: pre-wrap; font-size: 15px; color: #dbe6f5; }
+  .muted { color: var(--muted); }
+  .err { color: var(--err); }
+  .hidden { display: none; }
+  canvas { display: block; }
+
+  /* progress stepper */
+  .progress {
+    margin: 0 0 20px; padding: 16px 18px; background: var(--panel);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    backdrop-filter: blur(10px); box-shadow: var(--shadow);
+    animation: fadeInUp .3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .rail { display: flex; align-items: center; flex-wrap: wrap; row-gap: 8px; }
+  .step { display: flex; align-items: center; gap: 8px; }
+  .step-dot {
+    width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 12px; font-weight: 700; flex: none;
+    border: 2px solid var(--border); background: #0b1220; color: var(--faint);
+    transition: border-color .25s, color .25s, background .25s, box-shadow .25s;
+  }
+  .step-label { font-size: 12.5px; color: var(--faint); font-weight: 600; white-space: nowrap; transition: color .25s; }
+  .bar { height: 2px; width: 28px; background: var(--border); margin: 0 9px; border-radius: 2px; transition: background .3s; }
+  .bar.filled { background: linear-gradient(90deg, var(--ok), var(--accent)); }
+
+  .step.done .step-dot { background: linear-gradient(135deg, var(--ok), #22a06b); border-color: transparent; color: #052e1a; }
+  .step.done .step-label { color: var(--text); }
+  .step.active .step-dot { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.14); }
+  .step.active .step-label { color: var(--accent); }
+  .step.await .step-dot { border-color: var(--warn); color: var(--warn); box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.14); animation: pulse 1.6s ease-in-out infinite; }
+  .step.await .step-label { color: var(--warn); }
+  .step.error .step-dot { border-color: var(--err); color: var(--err); }
+  .step.error .step-label { color: var(--err); }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 7px rgba(251, 191, 36, 0.04); } }
+
+  .mini-spin {
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 2px solid rgba(56, 189, 248, 0.25); border-top-color: var(--accent);
+    animation: spin .6s linear infinite;
+  }
+  .planline { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 13.5px; color: var(--muted); }
+  .planline b { color: var(--text); font-weight: 600; }
+
+  /* skeleton */
+  .sk {
+    height: 15px; border-radius: 7px; margin-bottom: 11px;
+    background: linear-gradient(90deg, #1a2540 25%, #24334f 37%, #1a2540 63%);
+    background-size: 400% 100%; animation: shimmer 1.4s ease infinite;
+  }
+  @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+
+  @media (max-width: 560px) {
+    .wrap { padding: 28px 14px 72px; }
+    h1 { font-size: 25px; }
+    .askbar { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="logo">📊</div>
+    <h1>AI Data Analyst</h1>
+  </div>
+  <p class="sub">Ask in plain English. The agent plans, writes SQL, and waits for your approval before running anything &mdash; read-only, always.</p>
+
+  <div class="askbar">
+    <input id="q" type="text" placeholder="e.g. How many customers are in each region?" />
+    <button id="askBtn" onclick="ask()">Ask</button>
+  </div>
+
+  <div class="chips" id="chips"></div>
+
+  <div id="progress" class="progress hidden">
+    <div id="rail" class="rail"></div>
+    <div id="planline" class="planline hidden"></div>
+  </div>
+
+  <div id="out"></div>
+</div>
+
+<script>
+const EXAMPLES = [
+  "How many customers are in each region?",
+  "Top 5 products by revenue",
+  "Monthly revenue trend",
+  { text: "show top customers", vague: true },
+];
+
+let threadId = null;
+let chart = null;
+
+const out = document.getElementById("out");
+const qInput = document.getElementById("q");
+const askBtn = document.getElementById("askBtn");
+
+// ---- example chips -------------------------------------------------------
+const chipsEl = document.getElementById("chips");
+EXAMPLES.forEach(ex => {
+  const text = typeof ex === "string" ? ex : ex.text;
+  const vague = typeof ex === "object" && ex.vague;
+  const b = document.createElement("button");
+  b.className = "chip" + (vague ? " vague" : "");
+  b.textContent = vague ? text + "  (vague → clarify)" : text;
+  b.onclick = () => { qInput.value = text; ask(); };
+  chipsEl.appendChild(b);
+});
+
+// ---- progress stepper ----------------------------------------------------
+// The backend streams one event per completed graph node; we light up this
+// rail live. clarify/fix are optional and only appear when they occur.
+const STAGES = [
+  { id: "plan",    label: "Plan" },
+  { id: "clarify", label: "Clarify", optional: true },
+  { id: "sql",     label: "Write SQL" },
+  { id: "approve", label: "Approve" },
+  { id: "fix",     label: "Fix", optional: true },
+  { id: "run",     label: "Run" },
+  { id: "explain", label: "Explain" },
+];
+const NODE_STAGE = {
+  planner: "plan", clarify: "clarify", sql_generator: "sql",
+  human_approval: "approve", debugger: "fix", executor: "run", narrator: "explain",
+};
+
+const progressEl = document.getElementById("progress");
+const railEl = document.getElementById("rail");
+const planEl = document.getElementById("planline");
+let stageState = {};   // id -> pending | active | done | await | error
+let stageVisible = {}; // id -> bool
+
+function resetProgress() {
+  stageState = {}; stageVisible = {};
+  STAGES.forEach(s => { stageState[s.id] = "pending"; stageVisible[s.id] = !s.optional; });
+  stageState.plan = "active";           // planner runs immediately
+  progressEl.classList.remove("hidden");
+  planEl.classList.add("hidden"); planEl.innerHTML = "";
+  renderRail();
+}
+
+function visibleStages() { return STAGES.filter(s => stageVisible[s.id]); }
+
+function advanceActive() {
+  const vis = visibleStages();
+  vis.forEach(s => { if (stageState[s.id] === "active") stageState[s.id] = "pending"; });
+  let lastDone = -1;
+  vis.forEach((s, i) => { if (stageState[s.id] === "done") lastDone = i; });
+  const next = vis[lastDone + 1];
+  if (next && stageState[next.id] === "pending") stageState[next.id] = "active";
+}
+
+function onNode(evt) {
+  const id = NODE_STAGE[evt.node];
+  if (!id) return;
+  stageVisible[id] = true;
+  stageState[id] = "done";
+  advanceActive();
+  renderRail();
+  if (evt.plan) showPlan(evt.plan);   // live plan, straight after planning
+}
+
+function onResult(data) {
+  if (!data) return;
+  visibleStages().forEach(s => { if (stageState[s.id] === "active") stageState[s.id] = "pending"; });
+  if (data.status === "interrupt" && data.interrupt.type === "approval") {
+    stageState.approve = "await";
+  } else if (data.status === "interrupt" && data.interrupt.type === "clarify") {
+    stageVisible.clarify = true; stageState.clarify = "await";
+  } else if (data.status === "done") {
+    STAGES.forEach(s => { if (stageVisible[s.id] && stageState[s.id] !== "done") stageState[s.id] = stageState[s.id] === "await" ? "done" : stageState[s.id]; });
+    stageState.explain = "done";
+  }
+  if (data.plan) showPlan(data.plan);
+  renderRail();
+}
+
+function onError() {
+  const active = visibleStages().find(s => stageState[s.id] === "active");
+  if (active) stageState[active.id] = "error";
+  renderRail();
+}
+
+function showPlan(plan) {
+  planEl.innerHTML = "";
+  const b = document.createElement("b"); b.textContent = "Plan: ";
+  planEl.append(b, document.createTextNode(plan));
+  planEl.classList.remove("hidden");
+}
+
+function renderRail() {
+  railEl.innerHTML = "";
+  const vis = visibleStages();
+  vis.forEach((s, i) => {
+    const st = stageState[s.id];
+    const step = el("div", "step " + st);
+    const dot = el("div", "step-dot");
+    if (st === "done") dot.textContent = "✓";
+    else if (st === "active") dot.append(el("div", "mini-spin"));
+    else if (st === "await") dot.textContent = "!";
+    else if (st === "error") dot.textContent = "×";
+    else dot.textContent = String(i + 1);
+    const label = el("div", "step-label"); label.textContent = s.label;
+    step.append(dot, label);
+    railEl.append(step);
+    if (i < vis.length - 1) {
+      const bar = el("div", "bar" + (st === "done" ? " filled" : ""));
+      railEl.append(bar);
+    }
+  });
+}
+
+// ---- networking (SSE stream) --------------------------------------------
+async function postStream(url, body, onNode) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "", result = null;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let idx;
+    while ((idx = buf.indexOf("\n\n")) >= 0) {
+      const raw = buf.slice(0, idx); buf = buf.slice(idx + 2);
+      const line = raw.replace(/^data:\s?/, "").trim();
+      if (!line) continue;
+      const evt = JSON.parse(line);
+      if (evt.event === "node") onNode(evt);
+      else if (evt.event === "result") result = evt;
+    }
+  }
+  return result;
+}
+
+function setBusy(busy) {
+  askBtn.disabled = busy;
+  // disable chips too while a request is in flight
+  chipsEl.querySelectorAll("button").forEach(b => (b.disabled = busy));
+  askBtn.innerHTML = busy
+    ? '<span class="spinner"></span> Thinking…'
+    : "Ask";
+}
+
+function showSkeleton() {
+  out.innerHTML = "";
+  const card = el("div", "card");
+  card.append(h3("Working…"));
+  ["70%", "100%", "45%"].forEach(w => {
+    const s = el("div", "sk"); s.style.width = w; card.append(s);
+  });
+  out.append(card);
+}
+
+async function ask() {
+  const question = qInput.value.trim();
+  if (!question) return;
+  setBusy(true);
+  if (chart) { chart.destroy(); chart = null; }
+  resetProgress();
+  showSkeleton();
+  try {
+    const data = await postStream("/api/start_stream", { question }, onNode);
+    onResult(data);
+    render(data);
+  } catch (e) {
+    onError();
+    renderError("Network error: " + e.message);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function resume(value) {
+  setBusy(true);
+  // the awaiting stage is now completing — clear its highlight
+  visibleStages().forEach(s => { if (stageState[s.id] === "await") stageState[s.id] = "done"; });
+  renderRail();
+  showSkeleton();
+  try {
+    const data = await postStream("/api/resume_stream", { thread_id: threadId, resume: value }, onNode);
+    onResult(data);
+    render(data);
+  } catch (e) {
+    onError();
+    renderError("Network error: " + e.message);
+  } finally {
+    setBusy(false);
+  }
+}
+
+// ---- rendering -----------------------------------------------------------
+function render(data) {
+  if (data.thread_id) threadId = data.thread_id;
+  out.innerHTML = "";
+  if (chart) { chart.destroy(); chart = null; }
+
+  switch (data.status) {
+    case "interrupt":
+      data.interrupt.type === "clarify"
+        ? renderClarify(data.interrupt)
+        : renderApproval(data.interrupt);
+      break;
+    case "done": renderDone(data); break;
+    case "cancelled": renderMessage("Cancelled — nothing was run.", "muted"); break;
+    case "error": renderError(data.message); break;
+    default: renderError("Unexpected response.");
+  }
+}
+
+function renderClarify(intr) {
+  const card = el("div", "card");
+  card.append(h3("I need a bit more detail"));
+  const p = el("p"); p.textContent = intr.question; card.append(p);
+  const input = document.createElement("input");
+  input.type = "text"; input.placeholder = "Type your answer…";
+  input.addEventListener("keydown", e => { if (e.key === "Enter") send(); });
+  const send = () => { const v = input.value.trim(); if (v) resume(v); };
+  const btn = button("Send", send);
+  const row = el("div", "row"); row.style.marginTop = "10px";
+  input.style.flex = "1"; row.append(input, btn);
+  card.append(row);
+  out.append(card);
+  input.focus();
+}
+
+function renderApproval(intr) {
+  const card = el("div", "card");
+  card.append(h3("Approve this query?"));
+  const pre = el("pre"); pre.textContent = intr.sql; card.append(pre);
+
+  const row = el("div", "row");
+  row.append(
+    button("Approve", () => resume({ action: "approve" })),
+    button("Edit", () => toggleEdit(), "secondary"),
+    button("Reject", () => resume({ action: "reject" }), "danger"),
+  );
+  card.append(row);
+
+  // hidden edit area
+  const editWrap = el("div", "hidden");
+  editWrap.style.marginTop = "12px";
+  const ta = document.createElement("textarea");
+  ta.value = intr.sql;
+  const runBtn = button("Run edited SQL", () => {
+    const sql = ta.value.trim();
+    if (sql) resume({ action: "edit", sql });
+  });
+  runBtn.style.marginTop = "8px";
+  editWrap.append(ta, runBtn);
+  card.append(editWrap);
+
+  function toggleEdit() { editWrap.classList.toggle("hidden"); ta.focus(); }
+  out.append(card);
+}
+
+function renderDone(data) {
+  // result table
+  const tableCard = el("div", "card");
+  tableCard.append(h3("Result"));
+  tableCard.append(buildTable(data.columns, data.rows));
+  out.append(tableCard);
+
+  // insight
+  const insightCard = el("div", "card");
+  insightCard.append(h3("Insight"));
+  const p = el("p", "insight"); p.textContent = data.insight; insightCard.append(p);
+  out.append(insightCard);
+
+  // chart
+  drawChart(data);
+}
+
+function renderMessage(text, cls) {
+  const card = el("div", "card");
+  const p = el("p", cls); p.textContent = text; card.append(p);
+  out.append(card);
+}
+function renderError(msg) { renderMessage("Error: " + msg, "err"); }
+
+// ---- helpers -------------------------------------------------------------
+function el(tag, cls) { const e = document.createElement(tag); if (cls) e.className = cls; return e; }
+function h3(text) { const e = el("h3"); e.textContent = text; return e; }
+function button(text, onclick, cls) {
+  const b = document.createElement("button");
+  if (cls) b.className = cls;
+  b.textContent = text; b.onclick = onclick; return b;
+}
+
+function buildTable(columns, rows) {
+  const wrap = el("div", "tablewrap");
+  const table = el("table");
+  const thead = el("thead"); const htr = el("tr");
+  columns.forEach(c => { const th = el("th"); th.textContent = c; htr.append(th); });
+  thead.append(htr); table.append(thead);
+  const tbody = el("tbody");
+  rows.slice(0, 100).forEach(r => {
+    const tr = el("tr");
+    r.forEach(v => { const td = el("td"); td.textContent = v; tr.append(td); });
+    tbody.append(tr);
+  });
+  table.append(tbody); wrap.append(table);
+
+  const container = el("div");
+  container.append(wrap);
+  if (rows.length > 100) {
+    const note = el("p", "muted");
+    note.style.margin = "10px 2px 0"; note.style.fontSize = "13px";
+    note.textContent = `Showing first 100 of ${rows.length} rows.`;
+    container.append(note);
+  }
+  return container;
+}
+
+// Parse "Suggested chart: <type>" from the narrator's insight; fallback bar.
+function parseChartType(insight) {
+  const m = /suggested chart:\s*(bar|line|pie|none)/i.exec(insight || "");
+  return m ? m[1].toLowerCase() : "bar";
+}
+
+function isNumeric(v) { return v !== null && v !== "" && !isNaN(Number(v)); }
+
+function drawChart(data) {
+  const type = parseChartType(data.insight);
+  if (type === "none") return;
+  const { columns, rows } = data;
+  if (!rows || rows.length === 0 || columns.length < 2) return;
+
+  // pick the last numeric column as the value axis
+  let valueIdx = -1;
+  for (let c = columns.length - 1; c >= 0; c--) {
+    if (rows.every(r => isNumeric(r[c]))) { valueIdx = c; break; }
+  }
+  if (valueIdx === -1) return;
+
+  // labels: first column that isn't the value column
+  let labelIdx = 0;
+  if (labelIdx === valueIdx) labelIdx = valueIdx === 0 ? 1 : 0;
+
+  const labels = rows.map(r => String(r[labelIdx]));
+  const values = rows.map(r => Number(r[valueIdx]));
+
+  const card = el("div", "card");
+  card.append(h3(`${type} chart`));
+  const holder = el("div");
+  holder.style.position = "relative"; holder.style.height = "320px";
+  const canvas = document.createElement("canvas");
+  holder.append(canvas); card.append(holder); out.append(card);
+
+  const palette = ["#38bdf8", "#818cf8", "#34d399", "#fbbf24", "#f472b6",
+                   "#f87171", "#22d3ee", "#c084fc"];
+  const isPie = type === "pie";
+  const isLine = type === "line";
+
+  // vertical gradient fill for bar/line so it reads less flat
+  const ctx = canvas.getContext("2d");
+  const grad = ctx.createLinearGradient(0, 0, 0, 320);
+  grad.addColorStop(0, "rgba(56, 189, 248, 0.85)");
+  grad.addColorStop(1, "rgba(56, 189, 248, 0.15)");
+
+  chart = new Chart(canvas, {
+    type,
+    data: {
+      labels,
+      datasets: [{
+        label: columns[valueIdx],
+        data: values,
+        backgroundColor: isPie
+          ? labels.map((_, i) => palette[i % palette.length])
+          : (isLine ? "rgba(56, 189, 248, 0.12)" : grad),
+        borderColor: isLine ? "#38bdf8" : (isPie ? "#0b1120" : "transparent"),
+        borderWidth: isPie ? 2 : (isLine ? 2 : 0),
+        borderRadius: isPie || isLine ? 0 : 8,
+        maxBarThickness: 56,
+        fill: isLine,
+        tension: isLine ? 0.35 : 0,
+        pointBackgroundColor: "#38bdf8",
+        pointRadius: isLine ? 3 : 0,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: "#e2e8f0", font: { family: "Inter" } }, display: isPie },
+        tooltip: {
+          backgroundColor: "#0b1120", borderColor: "#2a3a53", borderWidth: 1,
+          titleColor: "#e8eef7", bodyColor: "#c9d6ea", padding: 10, cornerRadius: 8,
+        },
+      },
+      scales: isPie ? {} : {
+        x: { ticks: { color: "#97a6bd" }, grid: { display: false } },
+        y: { ticks: { color: "#97a6bd" }, grid: { color: "rgba(42, 58, 83, 0.55)" }, beginAtZero: true },
+      },
+    },
+  });
+}
+</script>
+</body>
+</html>

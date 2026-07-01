@@ -32,8 +32,17 @@ Delete `store.db` to reseed after changing the schema in `database.py`.
 | `agents.py` | the 7 node functions + LLM helper (`_ask`) | changing agent behaviour or prompts |
 | `graph.py` | graph wiring, edges, routing, checkpointer | changing control flow |
 | `main.py` | CLI interrupt/resume loop | CLI UX |
-| `server.py` | FastAPI endpoints + static serving | API or backend behaviour |
-| `static/index.html` | zero-build web UI + Chart.js | frontend |
+| `server.py` | FastAPI endpoints (JSON + SSE) + static serving | API or backend behaviour |
+| `static/index.html` | zero-build web UI + Chart.js + progress stepper | frontend |
+
+Endpoints come in two flavours that share one `_shape()` serializer: the JSON
+`/api/start` + `/api/resume` (used by tests) and the SSE `/api/start_stream` +
+`/api/resume_stream` (used by the UI). The stream endpoints wrap
+`graph.stream(..., stream_mode="updates")`, emitting one `{event:"node"}` per
+completed node so the UI can light up its progress stepper live, then a final
+`{event:"result", ...}` with the same shape as the JSON responses (plus `plan`).
+Node→stage mapping lives in `NODE_STAGE` in the UI; keep it aligned with the
+node names in `graph.py` if you rename nodes.
 
 ## Conventions & invariants (do not break)
 

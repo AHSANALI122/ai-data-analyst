@@ -310,12 +310,12 @@ A good final step is to move these inline checks into `pytest` files under `test
 
 ## Build-order checklist
 
-- [ ] F0 Scaffold + sample database (read-only guard, no-clobber seeding)
-- [ ] F1 State + provider-agnostic LLM (free Gemini default)
-- [ ] F2 Core pipeline (planner, sql_generator, executor, narrator)
-- [ ] F3 Human-in-the-loop approval gate (interrupt + checkpointer + CLI)
-- [ ] F4 Self-correcting debug loop (bounded)
-- [ ] F5 Ambiguity clarification
-- [ ] F6 FastAPI backend (start/resume + error handling)
-- [ ] F7 Web UI + chart rendering
-- [ ] F8 Documentation & repo polish
+- [x] F0 Scaffold + sample database (read-only guard, no-clobber seeding)
+- [x] F1 State + provider-agnostic LLM (free Gemini default)
+- [x] F2 Core pipeline (planner, sql_generator, executor, narrator)
+- [x] F3 Human-in-the-loop approval gate (interrupt + checkpointer + CLI)
+- [x] F4 Self-correcting debug loop (bounded)
+- [x] F5 Ambiguity clarification
+- [x] F6 FastAPI backend (start/resume + error handling)
+- [x] F7 Web UI + chart rendering
+- [x] F8 Documentation & repo polish

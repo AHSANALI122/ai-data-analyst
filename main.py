@@ -1,8 +1,12 @@
 """Command-line entry point for the AI Data Analyst.
 
-Feature 3: seed the demo DB (if missing), ask one question, then pause for
-human approval before any SQL runs. The user can approve, edit, or reject the
-proposed query; on approval the result table and plain-English insight print.
+Seed the demo DB (if missing), ask one question, then drive the human-in-the-loop
+pauses to completion. Two interrupt types can occur:
+
+- ``clarify`` (Feature 5) — the question was vague; resume with a plain string.
+- ``approval`` (Feature 3) — approve/edit/reject the proposed SQL; resume with a
+  dict. Rejection cancels; a failing query is repaired by the Feature 4 debug
+  loop and re-approved until it succeeds or the retry cap is reached.
 
 Usage:
     python main.py "your question"
@@ -18,6 +22,15 @@ from database import ensure_sample_db
 from graph import build_graph
 
 DEFAULT_QUESTION = "How many customers are in each region?"
+
+
+def _prompt_clarify(payload):
+    """Show the clarifying question and collect the user's free-text answer.
+
+    Returns a plain string per the clarify resume contract (invariant #7).
+    """
+    print(payload.get("question", "Could you clarify what you're looking for?"))
+    return input("> ").strip()
 
 
 def _prompt_approval(payload):
@@ -56,9 +69,14 @@ def main():
     result = graph.invoke({"question": question}, config)
 
     # Drive the human-in-the-loop pauses until the graph runs to completion.
+    # The resume payload depends on the interrupt type: a plain string for
+    # clarify, a dict for approval.
     while "__interrupt__" in result:
         payload = result["__interrupt__"][0].value
-        resume = _prompt_approval(payload)
+        if payload.get("type") == "clarify":
+            resume = _prompt_clarify(payload)
+        else:
+            resume = _prompt_approval(payload)
         result = graph.invoke(Command(resume=resume), config)
 
     print()

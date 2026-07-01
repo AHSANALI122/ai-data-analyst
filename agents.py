@@ -133,12 +133,40 @@ def executor(state):
         return {"error": str(e), "retries": state.get("retries", 0) + 1}
 
 
+def debugger(state):
+    """Repair a failing query using the schema, failing SQL, and error (Feature 4).
+
+    Mirrors `sql_generator`'s output contract (a single read-only SELECT/WITH,
+    no prose or fences) but is handed the query that failed and its error so the
+    model can correct it. Returns only the rewritten SQL — the retry counter is
+    owned by `executor` (which increments it on failure) and is what bounds the
+    debug loop, so we must not touch `retries` or `error` here.
+    """
+    system = (
+        "You are a SQLite expert fixing a query that failed. Given the schema, "
+        "the original question, the failing SQL, and the error message, rewrite "
+        "the query so it runs correctly and still answers the question. It must "
+        "be a single read-only SELECT (or WITH) query. Return ONLY the corrected "
+        "SQL, with no prose, comments, or markdown fences."
+    )
+    user = "\n".join(
+        [
+            get_schema_text(),
+            f"Question: {state['question']}",
+            f"Failing SQL: {state.get('sql', '')}",
+            f"Error: {state.get('error', '')}",
+        ]
+    )
+    sql = _strip_fences(_ask(system, user))
+    return {"sql": sql}
+
+
 def narrator(state):
     """Explain the result in plain English (or report a failure)."""
     if state.get("error"):
         insight = (
-            f"Sorry - I couldn't answer that. The query failed with: "
-            f"{state['error']}"
+            f"Sorry - I couldn't answer that after {MAX_RETRIES} attempts. "
+            f"The query kept failing with: {state['error']}"
         )
         return {"insight": insight}
 
@@ -155,6 +183,27 @@ def narrator(state):
     user = f"Question: {state['question']}\n\nResult (up to 30 rows):\n{preview}"
     insight = _ask(system, user).strip()
     return {"insight": insight}
+
+
+def clarify(state):
+    """Pause to ask the user a clarifying question for a vague request (Feature 5).
+
+    Interrupt-safe like `human_approval`: `interrupt()` is the very first action,
+    called exactly once with no LLM call or DB write before it, so the re-run on
+    resume stays side-effect-free (invariant #4).
+
+    Resume contract: the caller resumes with a plain string (the user's answer),
+    not a dict (invariant #7). We record it as `clarification` and clear
+    `needs_clarification` so generation proceeds forward without re-clarifying.
+    """
+    answer = interrupt(
+        {
+            "type": "clarify",
+            "question": state.get("clarifying_question")
+            or "Could you clarify what you're looking for?",
+        }
+    )
+    return {"clarification": str(answer), "needs_clarification": False}
 
 
 def human_approval(state):

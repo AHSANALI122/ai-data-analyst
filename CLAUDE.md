@@ -66,15 +66,23 @@ Delete `store.db` to reseed after changing the schema in `database.py`.
 
 ## Testing
 
-No formal test runner yet; tests are run as inline scripts that monkeypatch
-`agents._ask` with a fake so no API key is needed. When changing logic, re-verify:
+Run the suite with `pytest` (dev dep in `requirements.txt`) — no API key needed.
+Tests live under `tests/`; shared fixtures are in the root `conftest.py`, which
+sets a dummy key and swaps `agents._ask` for a per-test fake, then drives the
+compiled graph through its interrupts like the CLI does.
 
-- start → approval → result; clarify branch; reject and edit branches;
-- the debug loop terminates at `MAX_RETRIES`;
-- `run_select` blocks writes/stacked statements and allows keyword-like literals;
-- `ensure_sample_db()` doesn't overwrite an existing DB.
+- `conftest.py` — `route` (system prompt → node name), `planner_json`, and
+  `drive(fake_ask, question)` → `(final_state, interrupt_types)`.
+- `tests/test_debug_loop.py` — F4: bounded at `MAX_RETRIES`, fixable path, happy
+  path never enters `debugger`.
+- `tests/test_clarify.py` — F5: vague question interrupts + threads the answer
+  into SQL; clear question skips `clarify`.
+- `tests/test_database.py` — `run_select` blocks writes/stacked statements, allows
+  keyword-like literals; `ensure_sample_db()` doesn't clobber an existing DB.
 
-A good next step is to move these into `pytest` files under `tests/`.
+When changing agent behaviour, extend the matching fake in the relevant test (the
+`route()` helper keys off substrings of each node's system prompt, so keep those
+prompts distinctive). Still worth adding: reject/edit approval branches.
 
 ## Gotchas
 

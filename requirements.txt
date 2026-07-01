@@ -6,3 +6,4 @@ tabulate
 fastapi
 uvicorn
 # langchain-anthropic   # optional: uncomment to use Claude via LLM_PROVIDER=anthropic
+pytest                  # dev only: runs the tests/ suite (no API key needed)
